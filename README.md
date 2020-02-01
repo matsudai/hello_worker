@@ -72,9 +72,23 @@ VSCodeの場合、デフォルトのターミナルがNODE_PATHを拾えるよ�
 }
 ```
 
+### electronインストール
+
+```
+> yarn add electron
+```
+
+[チュートリアルページ](https://www.electronjs.org/docs/tutorial/first-app)に従いアプリを作る。
+
+以下で起動する。
+
+```
+> yarn start
+```
+
 ## やりたいこと
 
-- [ ] Electron
+- [x] Electron
 - [ ] ファイルを取り込む
 - [ ] ファイルを取り込んでDBにぶち込む
 - [ ] DBのデータを集計して表示する
