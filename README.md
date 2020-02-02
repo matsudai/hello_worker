@@ -103,6 +103,20 @@ VSCodeの場合、デフォルトのターミナルがNODE_PATHを拾えるよ�
 > yarn add moment
 ```
 
+### バイナリへパッケージングする
+
+package.jsonのelectronとかeslintとかをdevDependenciesに置く。
+
+packagerだとignoreファイルの扱いに困るのでbuilderでexportする。
+
+```
+yarn add electron-builder --dev
+```
+
+```
+> node electron-builder\win.js
+```
+
 ## やりたいこと
 
 - [x] Electron

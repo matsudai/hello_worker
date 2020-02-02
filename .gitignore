@@ -2,3 +2,4 @@
 /node-v*
 /.vscode
 /db/*.db
+/dist

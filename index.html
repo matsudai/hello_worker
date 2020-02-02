@@ -41,7 +41,8 @@
   </body>
 
   <script type="application/javascript">
-    const dialog = require('electron').remote.dialog;
+    const electron = require('electron');
+    const dialog = electron.remote.dialog;
     const current_window = require('electron').remote.getCurrentWindow();
     const fs = require('fs');
     const parse_csv = require('csv-parse');
@@ -49,7 +50,10 @@
     const path = require('path');
     const moment = require('moment');
 
-    const db_path = filename => path.join(__dirname, 'db', filename);
+    const db_path = filename => {
+      const app = electron.remote.app.getAppPath();
+      return path.join(app, (electron.remote.app.isPackaged ? '..' : ''), 'db', filename);
+    };
     const db = {
       header_mappers: new NeDB({ filename: db_path('header_mappers.db'), autoload: true }),
       imported_tables: new NeDB({ filename: db_path('imported_tables.db'), autoload: true })
