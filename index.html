@@ -25,7 +25,7 @@
       <tr>
         <th></th>
         <td>→</td>
-        <td><select name="" data-label="" class="file-header-mapper-selection"></select></td>
+        <td><select name="" data-label="" data-type="" class="file-header-mapper-selection"></select></td>
       </tr>
     </template>
 
@@ -45,6 +45,15 @@
     const current_window = require('electron').remote.getCurrentWindow();
     const fs = require('fs');
     const parse_csv = require('csv-parse');
+    const NeDB = require('nedb');
+    const path = require('path');
+    const moment = require('moment');
+
+    const db_path = filename => path.join(__dirname, 'db', filename);
+    const db = {
+      header_mappers: new NeDB({ filename: db_path('header_mappers.db'), autoload: true }),
+      imported_tables: new NeDB({ filename: db_path('imported_tables.db'), autoload: true })
+    };
 
     // ファイルを取り込む
     // ファイルダイアログで選択されたファイルを取り込み以下を行う
@@ -111,19 +120,20 @@
             // マッピングテーブルの各行を生成する
             const mapper_row_tenmplate = document.getElementById('file-header-mapper-template').content.querySelector('tr');
             [
-              { label: '社員番号',         name: 'employee-number' },
-              { label: '社員名',           name: 'employee-name' },
-              { label: '作業日',           name: 'work-on' },
-              { label: 'プロジェクト番号', name: 'project-number' },
-              { label: 'プロジェクト名',   name: 'project-name' },
-              { label: '作業内容',         name: 'work-description' },
-              { label: '作業時間',         name: 'work-hours' },
+              { label: '社員番号',         name: 'employee-number',  type: 'string' },
+              { label: '社員名',           name: 'employee-name',    type: 'string' },
+              { label: '作業日',           name: 'work-on',          type: 'date' },
+              { label: 'プロジェクト番号', name: 'project-number',   type: 'string' },
+              { label: 'プロジェクト名',   name: 'project-name',     type: 'string' },
+              { label: '作業内容',         name: 'work-description', type: 'string' },
+              { label: '作業時間',         name: 'work-hours',       type: 'integer' },
             ].forEach(mapper => {
               const row = mapper_row_tenmplate.cloneNode(true);
               const th = row.querySelector('th');
               th.innerHTML = mapper.label;
               const selection = row.querySelector('select');
               selection.dataset.label = mapper.label;
+              selection.dataset.type = mapper.type;
               selection.name = mapper.name;
 
               // マッピングテーブルの選択肢を追加する
@@ -133,6 +143,25 @@
 
               // 新しいマッピングテーブルに行を挿入する
               new_mapper_table.appendChild(row);
+            });
+
+            // DBにマッピング情報があれば、それをデフォルト値とする
+            db.header_mappers.find({}, (error, docs) => {
+              if (error != null) {
+                alert(error);
+                return;
+              }
+
+              // マッピングテーブルの各行についてデフォルト値を設定する
+              document.querySelectorAll('#file-header-mappers .file-header-mapper-selection').forEach(selection => {
+                // DBにマッピング情報がない、またはファイルのヘッダにマッピング情報のヘッダ名がない場合はスキップする
+                const default_header_mapper = docs.find(doc => doc.name == selection.name);
+                if (default_header_mapper == null || !file_headers.includes(default_header_mapper.file_header)) {
+                  return;
+                }
+
+                selection.value = default_header_mapper.file_header;
+              });
             });
 
             // 既存のマッピングテーブルを洗い替えする
@@ -149,9 +178,41 @@
       const header_mappers = selections.map(element => {
         return {
           label: element.dataset.label,
+          name: element.name,
+          type: element.dataset.type,
           file_header: element.value
         };
       });
+
+      // マッピング情報を保存する
+      db.header_mappers.remove({ name: { $in: header_mappers.map(m => m.name) } }, { multi: true });
+      db.header_mappers.insert(header_mappers);
+
+      // 取り込まれたファイルを解析できるようマッピングする
+      const file_rows = JSON.parse(document.getElementById('data-file-rows').innerHTML);
+      const imported_tables = file_rows.map(file_row => {
+        let map = {};
+        header_mappers.forEach(mapper => {
+          let value = file_row[mapper.file_header];
+          if (value == null) {
+            value = null;
+          } else if (mapper.type == 'string') {
+            value = value.toString();
+          } else if (mapper.type == 'date') {
+            value = moment(value, 'YYYY/MM/DD', true);
+            value = value.isValid() ? value.toDate() : null;
+          }  else if (mapper.type == 'integer') {
+            value = Number(value);
+            value = Number.isNaN(value) ? null : value;
+          }
+          map[mapper.name] = value;
+        });
+        return map;
+      });
+
+      // 解析用データを保存する
+      db.imported_tables.remove({}, { multi: true });
+      db.imported_tables.insert(imported_tables);
 
       // 解析結果の表示領域を生成する
       const preview_table = document.createElement('table');
@@ -165,13 +226,18 @@
       });
       preview_table.appendChild(th_row);
 
-      // 取り込まれたファイルのダンプから、解析結果の表示領域のデータ部を生成する
-      const rows = JSON.parse(document.getElementById('data-file-rows').innerHTML);
-      rows.forEach(row => {
+      // 解析結果の表示領域のデータ部を生成する
+      imported_tables.forEach(row => {
         const tr = document.createElement('tr');
         header_mappers.forEach(mapper => {
           const td = document.createElement('td');
-          td.innerHTML = row[mapper.file_header];
+          let value = row[mapper.name];
+          if (value == null) {
+            value = null;
+          } else if (mapper.type == 'date') {
+            value = moment(value).format('YYYY/MM/DD');
+          }
+          td.innerHTML = value;
           tr.appendChild(td);
         });
         preview_table.appendChild(tr);
