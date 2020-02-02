@@ -3,16 +3,185 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>Hello Worker!</title>
 
     <!-- https://electronjs.org/docs/tutorial/security#csp-meta-tag -->
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
   </head>
 
   <body>
-    <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <h1>Hello Worker!</h1>
+
+    <!-- ファイル取り込みボタン -->
+    <button onclick="import_file();">import file</button>
+    <!-- ファイル内容のダンプ先 -->
+    <script id="data-file-rows" type="application/json"></script>
+
+    <!-- ファイルヘッダのマッピングテーブル -->
+    <table id="file-header-mappers"></table>
+
+    <!-- マッピングテーブルの行のテンプレ -->
+    <template id="file-header-mapper-template">
+      <tr>
+        <th></th>
+        <td>→</td>
+        <td><select name="" data-label="" class="file-header-mapper-selection"></select></td>
+      </tr>
+    </template>
+
+    <!-- ファイルヘッダのマッピングの選択肢のテンプレ -->
+    <template id="file-header-mapper-selection-option-template">
+      <option value=""></option>
+    </template>
+
+    <!-- ファイル解析ボタン -->
+    <button onclick="parse_file();">parse file</button>
+    <!-- ファイル内容のプレビュー先 -->
+    <div id="file-preview"></div>
   </body>
+
+  <script type="application/javascript">
+    const dialog = require('electron').remote.dialog;
+    const current_window = require('electron').remote.getCurrentWindow();
+    const fs = require('fs');
+    const parse_csv = require('csv-parse');
+
+    // ファイルを取り込む
+    // ファイルダイアログで選択されたファイルを取り込み以下を行う
+    //   - ヘッダ部を解析し、マッピングするための選択肢を生成する
+    //   - データ部について、JSONでダンプする
+    var import_file = () => {
+
+      // ファイル選択ダイアログを表示し、ファイルを選択させる
+      dialog.showOpenDialog(current_window, {
+        properties: ['openFile'],
+        title: 'Select a file',
+        defaultPath: '.',
+        filters: [
+          { name: 'csv',      extensions: ['csv'] },
+          { name: 'text', extensions: ['txt'] },
+          { name: 'any', extensions: ['*'] }
+        ]
+      }).then(result => {
+        // ファイルが選択されなかった場合はファイル取り込み処理を実行しない
+        if (result.canceled) {
+          return;
+        }
+
+        // ファイルを取り込み、ヘッダ部のマッピングの選択肢生成とデータ部のダンプを行う
+        fs.readFile(result.filePaths[0], (error, data) => {
+          // ファイル取り込みに失敗した場合は処理しない
+          if (error != null) {
+            alert('file open error.');
+            return;
+          }
+
+          parse_csv(data.toString(), { columns: true, trim: true, skip_empty_lines: true }, (error, data) => {
+            // ファイルをCSVとして解析できなかった場合は処理しない
+            if (error != null) {
+              alert('file parse error.');
+              return;
+            }
+
+            // ファイルのデータ部がなかった場合は処理しない
+            if (data.length <= 0) {
+              alert('csv does not have data.');
+              return;
+            }
+
+            const file_headers = Object.keys(data[0]);
+            const file_rows = data;
+
+            // データ部をDOMにダンプする
+            document.getElementById('data-file-rows').innerHTML = JSON.stringify(file_rows);
+
+            // マッピングテーブルを取得し、洗い替えのためにコピーする
+            const mapper_table = document.getElementById('file-header-mappers');
+            const new_mapper_table = mapper_table.cloneNode(false);
+
+            // マッピングテーブルのの選択肢を生成する
+            const mapper_selection_option_template = document.getElementById('file-header-mapper-selection-option-template').content.querySelector('option');
+            const mapper_options = file_headers.map(file_header => {
+              const option = mapper_selection_option_template.cloneNode(true);
+              option.innerHTML = file_header;
+              option.value = file_header;
+              return option;
+            });
+
+            // マッピングテーブルの各行を生成する
+            const mapper_row_tenmplate = document.getElementById('file-header-mapper-template').content.querySelector('tr');
+            [
+              { label: '社員番号',         name: 'employee-number' },
+              { label: '社員名',           name: 'employee-name' },
+              { label: '作業日',           name: 'work-on' },
+              { label: 'プロジェクト番号', name: 'project-number' },
+              { label: 'プロジェクト名',   name: 'project-name' },
+              { label: '作業内容',         name: 'work-description' },
+              { label: '作業時間',         name: 'work-hours' },
+            ].forEach(mapper => {
+              const row = mapper_row_tenmplate.cloneNode(true);
+              const th = row.querySelector('th');
+              th.innerHTML = mapper.label;
+              const selection = row.querySelector('select');
+              selection.dataset.label = mapper.label;
+              selection.name = mapper.name;
+
+              // マッピングテーブルの選択肢を追加する
+              mapper_options.forEach(option => {
+                selection.appendChild(option.cloneNode(true));
+              });
+
+              // 新しいマッピングテーブルに行を挿入する
+              new_mapper_table.appendChild(row);
+            });
+
+            // 既存のマッピングテーブルを洗い替えする
+            mapper_table.parentElement.replaceChild(new_mapper_table, mapper_table);
+          });
+        });
+      });
+    };
+
+    // 取り込まれたファイルとマッピング情報からファイルのデータ部を解析する
+    const parse_file = () => {
+      // マッピング情報を取得する
+      const selections = Array.from(document.querySelectorAll('#file-header-mappers .file-header-mapper-selection'));
+      const header_mappers = selections.map(element => {
+        return {
+          label: element.dataset.label,
+          file_header: element.value
+        };
+      });
+
+      // 解析結果の表示領域を生成する
+      const preview_table = document.createElement('table');
+
+      // マッピング情報から、解析結果の表示領域のヘッダ部を生成する
+      const th_row = document.createElement('tr');
+      header_mappers.forEach(mapper => {
+        const th = document.createElement('th');
+        th.innerHTML = `${mapper.label}<br>↓<br>${mapper.file_header}`;
+        th_row.appendChild(th);
+      });
+      preview_table.appendChild(th_row);
+
+      // 取り込まれたファイルのダンプから、解析結果の表示領域のデータ部を生成する
+      const rows = JSON.parse(document.getElementById('data-file-rows').innerHTML);
+      rows.forEach(row => {
+        const tr = document.createElement('tr');
+        header_mappers.forEach(mapper => {
+          const td = document.createElement('td');
+          td.innerHTML = row[mapper.file_header];
+          tr.appendChild(td);
+        });
+        preview_table.appendChild(tr);
+      });
+
+      // 既存の表示領域を洗い替えする
+      const preview = document.getElementById('file-preview');
+      const new_preview = preview.cloneNode(false);
+      new_preview.appendChild(preview_table);
+      preview.parentElement.replaceChild(new_preview, preview);
+    };
+  </script>
 </html>
