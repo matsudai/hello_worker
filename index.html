@@ -178,7 +178,7 @@
     // 取り込まれたファイルとマッピング情報からファイルのデータ部を解析する
     const parse_file = () => {
       // マッピング情報を取得する
-      const selections = Array.from(document.querySelectorAll('#file-header-mappers .file-header-mapper-selection'));
+      const selections = [...document.querySelectorAll('#file-header-mappers .file-header-mapper-selection')];
       const header_mappers = selections.map(element => {
         return {
           label: element.dataset.label,
@@ -218,10 +218,10 @@
       db.imported_tables.remove({}, { multi: true });
       db.imported_tables.insert(imported_tables);
 
-      // 解析結果の表示領域を生成する
+      // プレビューの表示領域を生成する
       const preview_table = document.createElement('table');
 
-      // マッピング情報から、解析結果の表示領域のヘッダ部を生成する
+      // マッピング情報から、プレビューの表示領域のヘッダ部を生成する
       const th_row = document.createElement('tr');
       header_mappers.forEach(mapper => {
         const th = document.createElement('th');
@@ -230,7 +230,7 @@
       });
       preview_table.appendChild(th_row);
 
-      // 解析結果の表示領域のデータ部を生成する
+      // プレビューの表示領域のデータ部を生成する
       imported_tables.forEach(row => {
         const tr = document.createElement('tr');
         header_mappers.forEach(mapper => {
