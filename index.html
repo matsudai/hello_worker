@@ -36,6 +36,21 @@
 
     <!-- ファイル解析ボタン -->
     <button onclick="parse_file();">parse file</button>
+
+    <!-- 週の集計結果の月選択 -->
+    <div id="week-aggregation-month"></div>
+    <template id="week-aggregation-month-selection-template">
+      <select id="week-aggregation-month-selection" onchange="aggregate_week();">
+        <option value=""></option>
+      </select>
+    </template>
+    <template id="week-aggregation-month-selection-option-template">
+      <option value=""></option>
+    </template>
+
+    <!-- 週の集計結果の表示 -->
+    <div id="week-aggregation-display"></div>
+
     <!-- ファイル内容のプレビュー先 -->
     <div id="file-preview"></div>
   </body>
@@ -128,13 +143,13 @@
             // マッピングテーブルの各行を生成する
             const mapper_row_tenmplate = document.getElementById('file-header-mapper-template').content.querySelector('tr');
             [
-              { label: '社員番号',         name: 'employee-number',  type: 'string' },
-              { label: '社員名',           name: 'employee-name',    type: 'string' },
-              { label: '作業日',           name: 'work-on',          type: 'date' },
-              { label: 'プロジェクト番号', name: 'project-number',   type: 'string' },
-              { label: 'プロジェクト名',   name: 'project-name',     type: 'string' },
-              { label: '作業内容',         name: 'work-description', type: 'string' },
-              { label: '作業時間',         name: 'work-hours',       type: 'integer' },
+              { label: '社員番号',         name: 'employee_number',  type: 'string' },
+              { label: '社員名',           name: 'employee_name',    type: 'string' },
+              { label: '作業日',           name: 'work_on',          type: 'date' },
+              { label: 'プロジェクト番号', name: 'project_number',   type: 'string' },
+              { label: 'プロジェクト名',   name: 'project_name',     type: 'string' },
+              { label: '作業内容',         name: 'work_description', type: 'string' },
+              { label: '作業時間',         name: 'work_hours',       type: 'integer' },
             ].forEach(mapper => {
               const row = mapper_row_tenmplate.cloneNode(true);
               const th = row.querySelector('th');
@@ -201,19 +216,8 @@
       const imported_tables = file_rows.map(file_row => {
         let map = {};
         header_mappers.forEach(mapper => {
-          let value = file_row[mapper.file_header];
-          if (value == null) {
-            value = null;
-          } else if (mapper.type == 'string') {
-            value = value.toString();
-          } else if (mapper.type == 'date') {
-            value = moment(value, 'YYYY/MM/DD', true);
-            value = value.isValid() ? value.toDate() : null;
-          }  else if (mapper.type == 'integer') {
-            value = Number(value);
-            value = Number.isNaN(value) ? null : value;
-          }
-          map[mapper.name] = value;
+          const value = file_row[mapper.file_header];
+          map[mapper.name] = cast_from_disp_to_db(value, mapper.type);
         });
         return map;
       });
@@ -221,6 +225,29 @@
       // 解析用データを保存する
       db.imported_tables.remove({}, { multi: true });
       db.imported_tables.insert(imported_tables);
+
+      // 月選択ドロップダウンを生成する
+      const week_aggregation_month_selection = document.getElementById('week-aggregation-month-selection-template').content.querySelector('select').cloneNode(true);
+      const week_aggregation_month_selection_option_template = document.getElementById('week-aggregation-month-selection-option-template').content.querySelector('option');
+
+      const months = [...new Set(
+        imported_tables.
+          map(row => moment(row['work_on'])).
+          filter(d => d.isValid()).
+          map(d => d.format('YYYY/MM'))
+      )];
+
+      months.forEach(month => {
+        const option = week_aggregation_month_selection_option_template.cloneNode(true);
+        option.value = month;
+        option.innerHTML = month;
+        week_aggregation_month_selection.appendChild(option);
+      });
+
+      const week_aggregation_month = document.getElementById('week-aggregation-month');
+      const new_week_aggregation_month = week_aggregation_month.cloneNode(false);
+      new_week_aggregation_month.appendChild(week_aggregation_month_selection);
+      week_aggregation_month.parentElement.replaceChild(new_week_aggregation_month, week_aggregation_month);
 
       // プレビューの表示領域を生成する
       const preview_table = document.createElement('table');
@@ -239,13 +266,8 @@
         const tr = document.createElement('tr');
         header_mappers.forEach(mapper => {
           const td = document.createElement('td');
-          let value = row[mapper.name];
-          if (value == null) {
-            value = null;
-          } else if (mapper.type == 'date') {
-            value = moment(value).format('YYYY/MM/DD');
-          }
-          td.innerHTML = value;
+          const value = row[mapper.name];
+          td.innerHTML = cast_from_db_to_disp(value, mapper.type);
           tr.appendChild(td);
         });
         preview_table.appendChild(tr);
@@ -256,6 +278,47 @@
       const new_preview = preview.cloneNode(false);
       new_preview.appendChild(preview_table);
       preview.parentElement.replaceChild(new_preview, preview);
+    };
+
+    // 週ごとの集計結果を表示する
+    const aggregate_week = () => {
+      const selection = document.getElementById('week-aggregation-month').querySelector('select');
+      const any_day_of_month = moment(selection.value, 'YYYY/MM');
+
+      if (!any_day_of_month.isValid()) {
+        return;
+      }
+
+      const begin_of_month = moment(any_day_of_month).startOf('month');
+      const end_of_month = moment(any_day_of_month).endOf('month');
+
+      db.imported_tables.find({ work_on: { $gte: begin_of_month, $lte: end_of_month } }, (e, d) => { d.forEach(e => console.log(e.work_on)) })
+    };
+
+    const cast_from_disp_to_db = (value, type) => {
+      if (value == null) {
+        return null;
+      } else if (type == 'string') {
+        return value.toString();
+      } else if (type == 'date') {
+        value = moment(value, 'YYYY/MM/DD', true);
+        return value.isValid() ? value.toDate() : null;
+      }  else if (type == 'integer') {
+        value = Number(value);
+        return Number.isNaN(value) ? null : value;
+      } else {
+        return value;
+      }
+    };
+
+    const cast_from_db_to_disp = (value, type) => {
+      if (value == null) {
+        return null;
+      } else if (type == 'date') {
+        return moment(value).format('YYYY/MM/DD');
+      } else {
+        return value;
+      }
     };
   </script>
 </html>
