@@ -49,6 +49,7 @@
     const NeDB = require('nedb');
     const path = require('path');
     const moment = require('moment');
+    const iconv = require('iconv-lite');
 
     const db_path = filename => {
       const app = electron.remote.app.getAppPath();
@@ -88,6 +89,9 @@
             alert('file open error.');
             return;
           }
+
+          // ファイルをSJISとして扱い、UTF-8へ変換する
+          data = iconv.decode(new Buffer(data, 'binary'), 'CP932');
 
           parse_csv(data.toString(), { columns: true, trim: true, skip_empty_lines: true }, (error, data) => {
             // ファイルをCSVとして解析できなかった場合は処理しない
