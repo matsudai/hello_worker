@@ -292,7 +292,22 @@
       const begin_of_month = moment(any_day_of_month).startOf('month');
       const end_of_month = moment(any_day_of_month).endOf('month');
 
-      db.imported_tables.find({ work_on: { $gte: begin_of_month, $lte: end_of_month } }, (e, d) => { d.forEach(e => console.log(e.work_on)) })
+      db.imported_tables.find(
+        { work_on: { $gte: begin_of_month, $lte: end_of_month } },
+        (e, d) => {
+          const employees = [
+            ...new Map(
+              d.map(elem => [
+                `${elem.employee_number} ${elem.employee_name}`,
+                {
+                  employee_number: elem.employee_number,
+                  employee_name: elem.employee_name
+                }
+              ])
+            ).values()
+          ];
+        }
+      );
     };
 
     const cast_from_disp_to_db = (value, type) => {
