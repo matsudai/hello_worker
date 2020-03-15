@@ -3,3 +3,4 @@
 /.vscode
 /db/*.db
 /dist
+/yarn-error.log
