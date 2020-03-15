@@ -1,4 +1,5 @@
 const electron = require('electron');
+const path = require('path');
 
 // アプリケーション開始時に初期表示ウィンドウを表示する
 electron.app.on('ready', () => {
@@ -14,7 +15,7 @@ electron.app.on('ready', () => {
 
   // 初期表示ウィンドウ用のファイルを読み込む
   let main_window = new electron.BrowserWindow(main_windown_config);
-  main_window.loadFile('index.html');
+  main_window.loadFile(path.resolve('dist/index.html'));
 
   // アプリがパッケージされていないときは開発者ツールを表示する
   if (!electron.app.isPackaged) {
