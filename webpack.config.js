@@ -9,15 +9,33 @@ const config = {
     path: path.resolve(__dirname, 'dist'),
     filename: 'index.js'
   },
+  resolve: {
+    extensions: ['.ts', '.tsx', '.js', '.jsx']
+  },
   module: {
     rules: [
       {
-        test: /\.js$/,
+        test: /\.tsx?$/,
         exclude: path.resolve(__dirname, 'node_modules'),
         use: [
           {
             loader: 'babel-loader',
-            query:{
+            query: {
+              presets: [
+                '@babel/preset-react',
+                '@babel/preset-typescript'
+              ]
+            }
+          }
+        ]
+      },
+      {
+        test: /\.jsx?$/,
+        exclude: path.resolve(__dirname, 'node_modules'),
+        use: [
+          {
+            loader: 'babel-loader',
+            query: {
               presets: ['@babel/preset-react'],
             }
           }
