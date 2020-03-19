@@ -7,25 +7,25 @@ interface Props {
 }
 
 const FilePreview: React.FC<Props> = (props: Props) => {
-  const renderHeader = (args: { header: string[] }): JSX.Element | null => {
-    if (args.header.length === 0) {
+  const renderHeader = ({ header }: Props): JSX.Element | null => {
+    if (header.length === 0) {
       return null;
     }
 
     return (
       <tr>
         {
-          args.header.map((colName, index) => <th key={index}>{colName}</th>)
+          header.map((colName, index) => <th key={index}>{colName}</th>)
         }
       </tr>
     );
   };
 
-  const renderRows = (args: { header: string[], rows: { [key: string]: string }[] }): JSX.Element[] => (
-    args.rows.map((row, rowIndex) => (
+  const renderRows = ({ header, rows }: Props): JSX.Element[] => (
+    rows.map((row, rowIndex) => (
       <tr key={rowIndex}>
         {
-          args.header.map((colName, colIndex) => <td key={colIndex}>{row[colName]}</td>)
+          header.map((colName, colIndex) => <td key={colIndex}>{row[colName]}</td>)
         }
       </tr>
     ))
