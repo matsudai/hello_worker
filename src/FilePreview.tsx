@@ -2,48 +2,34 @@ import React from 'react';
 import './FilePreview.css';
 
 interface Props {
-  header: string[];
-  rows: { [key: string]: string }[];
+  cols: { key: string, label: string, type: string, value: string | null }[];
+  rows: { [key: string]: string | number | Date | null }[];
+  convertToString: (value: string | number | Date | null) => string | null;
 }
 
-const FilePreview: React.FC<Props> = (props: Props) => {
-  const renderHeader = ({ header }: Props): JSX.Element | null => {
-    if (header.length === 0) {
-      return null;
-    }
-
-    return (
-      <tr>
+const FilePreview: React.FC<Props> = ({ cols, rows, convertToString }: Props) => (
+  <div className="FilePreview">
+    <table>
+      <thead>
+        <tr>
+          {
+            cols.map((col) => <th key={col.key}>{col.label}</th>)
+          }
+        </tr>
+      </thead>
+      <tbody>
         {
-          header.map((colName, index) => <th key={index}>{colName}</th>)
+          rows.map((row, rowIndex) => (
+            <tr key={rowIndex}>
+              {
+                cols.map((col) => <td key={col.key}>{col.value ? convertToString(row[col.value]) : ''}</td>)
+              }
+            </tr>
+          ))
         }
-      </tr>
-    );
-  };
-
-  const renderRows = ({ header, rows }: Props): JSX.Element[] => (
-    rows.map((row, rowIndex) => (
-      <tr key={rowIndex}>
-        {
-          header.map((colName, colIndex) => <td key={colIndex}>{row[colName]}</td>)
-        }
-      </tr>
-    ))
-  );
-
-  return (
-    <div className="FilePreview">
-      <table>
-        <thead>
-          {renderHeader(props)}
-        </thead>
-
-        <tbody>
-          {renderRows(props)}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+      </tbody>
+    </table>
+  </div>
+);
 
 export default FilePreview;

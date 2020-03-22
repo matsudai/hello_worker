@@ -35,6 +35,7 @@
     "import/extensions": [".ts", ".tsx", ".js", ".jsx"],
     "react/jsx-filename-extension": [2, { "extensions": [".ts", ".tsx", ".js", ".jsx"]  }],
     "max-len": 0,
+    "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
     "react/no-array-index-key": "warn",
     "comma-dangle":"off"
   }
