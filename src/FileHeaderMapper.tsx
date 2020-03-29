@@ -3,7 +3,7 @@ import './FileHeaderMapper.css';
 
 interface Props {
   header: string[];
-  mappers: { key: string, label: string }[];
+  mappers: { key: string, label: string, value: string | null }[];
   setMapperValue: (key: string, value: string) => void;
 }
 
@@ -16,13 +16,13 @@ const FileHeaderMapper: React.FC<Props> = ({ header, mappers, setMapperValue }: 
             <tr key={mapper.key}>
               <th>{mapper.label}</th>
               <td>
-                <select onChange={(e) => setMapperValue(mapper.key, e.target.value)}>
+                <select value={mapper.value || ''} onChange={(e) => setMapperValue(mapper.key, e.target.value)}>
                   {
                     header.length > 0 ? <option>{}</option> : null
                   }
                   {
-                    header.map((colName, index) => (
-                      <option key={index} value={colName}>{colName}</option>
+                    header.map((colName) => (
+                      <option key={colName} value={colName}>{colName}</option>
                     ))
                   }
                 </select>
