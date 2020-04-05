@@ -5,6 +5,7 @@ import './App.css';
 import FileImportButton from './FileImportButton';
 import FilePreview from './FilePreview';
 import FileHeaderMapper from './FileHeaderMapper';
+import Aggregate from './Aggregate';
 
 class DB {
   private static openOrCreateDB(onSuccess: (db: IDBDatabase) => void): void {
@@ -36,49 +37,49 @@ class DB {
     return [
       {
         user: 'default',
-        key: 'employee_number',
+        key: 'employeeNumber',
         type: 'string',
         label: '社員番号',
         value: null
       },
       {
         user: 'default',
-        key: 'employee_name',
+        key: 'employeeName',
         type: 'string',
         label: '社員名',
         value: null
       },
       {
         user: 'default',
-        key: 'work_on',
+        key: 'workOn',
         type: 'date',
         label: '作業日',
         value: null
       },
       {
         user: 'default',
-        key: 'project_number',
+        key: 'projectNumber',
         type: 'string',
         label: 'プロジェクト番号',
         value: null
       },
       {
         user: 'default',
-        key: 'project_name',
+        key: 'projectName',
         type: 'string',
         label: 'プロジェクト名',
         value: null
       },
       {
         user: 'default',
-        key: 'work_description',
+        key: 'workDescription',
         type: 'string',
         label: '作業内容',
         value: null
       },
       {
         user: 'default',
-        key: 'work_hour',
+        key: 'workHour',
         type: 'integer',
         label: '作業時間',
         value: null
@@ -159,7 +160,7 @@ const App: React.FC<Props> = () => {
       const dataRow: typeof dataRows[0] = {};
       newFileHeaderMappers.forEach((mapper) => {
         if (mapper.value) {
-          dataRow[mapper.value] = convertStringToTypeValue(mapper.type, fileRow[mapper.value]);
+          dataRow[mapper.key] = convertStringToTypeValue(mapper.type, fileRow[mapper.value]);
         }
       });
       return dataRow;
@@ -191,9 +192,9 @@ const App: React.FC<Props> = () => {
 
           setDataRows(rows.map((fileRow) => {
             const dataRow: typeof dataRows[0] = {};
-            newFileHeaderMappers.forEach(({ type, value }) => {
+            newFileHeaderMappers.forEach(({ key, type, value }) => {
               if (value) {
-                dataRow[value] = convertStringToTypeValue(type, fileRow[value]);
+                dataRow[key] = convertStringToTypeValue(type, fileRow[value]);
               }
             });
             return dataRow;
@@ -218,6 +219,7 @@ const App: React.FC<Props> = () => {
       <main>
         <FileImportButton setTable={updateFilePreview} />
         <FileHeaderMapper header={fileHeader} mappers={fileHeaderMappers} setMapperValue={updateFileHeaderMapperValue} />
+        <Aggregate dataRows={dataRows} />
         <FilePreview cols={fileHeaderMappers} rows={dataRows} convertToString={convertTypeValueToString} />
       </main>
     </div>

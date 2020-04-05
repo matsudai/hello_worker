@@ -22,7 +22,7 @@ const FilePreview: React.FC<Props> = ({ cols, rows, convertToString }: Props) =>
           rows.map((row, rowIndex) => (
             <tr key={rowIndex}>
               {
-                cols.map((col) => <td key={col.key}>{col.value ? convertToString(row[col.value]) : ''}</td>)
+                cols.map((col) => <td key={col.key}>{col.value ? convertToString(row[col.key]) : ''}</td>)
               }
             </tr>
           ))
