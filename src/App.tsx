@@ -219,7 +219,7 @@ const App: React.FC<Props> = () => {
       <main>
         <FileImportButton setTable={updateFilePreview} />
         <FileHeaderMapper header={fileHeader} mappers={fileHeaderMappers} setMapperValue={updateFileHeaderMapperValue} />
-        <Aggregate dataRows={dataRows} />
+        <Aggregate dataRows={dataRows} convertToString={convertTypeValueToString} />
         <FilePreview cols={fileHeaderMappers} rows={dataRows} convertToString={convertTypeValueToString} />
       </main>
     </div>

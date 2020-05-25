@@ -4,7 +4,8 @@ import moment from 'moment';
 
 interface Props {
   // rows: { workOn: Date | null }[];
-  dataRows: { [key: string]: string | number | Date | null }[]
+  dataRows: { [key: string]: string | number | Date | null }[];
+  convertToString: (value: string | number | Date | null) => string | null;
 }
 
 type WorkWeekGroup = {
@@ -15,7 +16,7 @@ type WorkWeekGroup = {
   workWeekToAsNumber: number;
 }
 
-const Aggregate: React.FC<Props> = ({ dataRows }: Props) => {
+const Aggregate: React.FC<Props> = ({ dataRows, convertToString }: Props) => {
   const groupByWorkWeek = (rows: Props['dataRows']): WorkWeekGroup[] => rows.reduce((groups: WorkWeekGroup[], row) => {
     const workOn = row.workOn == null ? null : moment(row.workOn as Date);
     const workWeekFrom = workOn?.startOf('week')?.toDate() ?? null;
@@ -47,22 +48,34 @@ const Aggregate: React.FC<Props> = ({ dataRows }: Props) => {
     return 0;
   });
 
+  const workDurationInWeekToString = (group: WorkWeekGroup): string => {
+    if (group.workWeekFrom === null && group.workWeekTo === null) {
+      return '';
+    }
+
+    return `${convertToString(group.workWeekFrom)}～${convertToString(group.workWeekTo)}`;
+  };
+
+  const workHourInWeekToString = (group: WorkWeekGroup): string => {
+    const sumOfWorkHours = group.rows.reduce((sum: number, value) => {
+      if (value.workHour === null) {
+        return sum;
+      }
+
+      return sum + Number(value.workHour);
+    }, 0);
+
+    return convertToString(sumOfWorkHours / 60.0) ?? '';
+  };
+
   return (
     <div className="Aggregate">
       {
         groupByWorkWeek(dataRows).map((group) => (
           <div key={group.workWeekFromAsNumber ?? 0}>
-            { group.workWeekFrom?.toString() ?? '' }
-            {
-              group.rows.map((row, rowId) => (
-                <div key={rowId}>
-                  &gt;&gt;
-                  {
-                    row.workOn?.toString()
-                  }
-                </div>
-              ))
-            }
+            { workDurationInWeekToString(group) }
+            ：
+            { workHourInWeekToString(group) }
           </div>
         ))
       }
