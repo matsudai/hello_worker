@@ -1,68 +1,39 @@
 import React from 'react';
 import './Aggregate.css';
-import moment from 'moment';
+import WorkRecord from './WorkRecord';
 
 interface Props {
-  // rows: { workOn: Date | null }[];
   dataRows: { [key: string]: string | number | Date | null }[];
   convertToString: (value: string | number | Date | null) => string | null;
 }
 
-type WorkWeekGroup = {
-  rows: Props['dataRows'];
-  workWeekFrom: Date | null;
-  workWeekTo: Date | null;
-  workWeekFromAsNumber: number;
-  workWeekToAsNumber: number;
-}
-
 const Aggregate: React.FC<Props> = ({ dataRows, convertToString }: Props) => {
-  const groupByWorkWeek = (rows: Props['dataRows']): WorkWeekGroup[] => rows.reduce((groups: WorkWeekGroup[], row) => {
-    const workOn = row.workOn == null ? null : moment(row.workOn as Date);
-    const workWeekFrom = workOn?.startOf('week')?.toDate() ?? null;
-    const workWeekFromAsNumber = workWeekFrom?.valueOf() ?? 0;
+  const workRecords = dataRows.map((row) => new WorkRecord(row));
 
-    const groupSameWeek = groups.find((group) => group.workWeekFromAsNumber === workWeekFromAsNumber);
-    if (groupSameWeek) {
-      groupSameWeek.rows.push(row);
-    } else {
-      const workWeekTo = workOn?.endOf('week')?.toDate() ?? null;
-      const workWeekToAsNumber = workWeekTo?.valueOf() ?? 0;
-      groups.push({
-        rows: [row],
-        workWeekFrom,
-        workWeekTo,
-        workWeekFromAsNumber,
-        workWeekToAsNumber
-      });
-    }
+  const groupByWorkWeek = () => WorkRecord.groupByWorkWeek(workRecords).filter((group) => group.header != null);
+  const groupByProject = () => WorkRecord.groupByProject(workRecords).filter((group) => group.header != null);
 
-    return groups;
-  }, []).sort((a, b) => {
-    if (a.workWeekFromAsNumber > b.workWeekFromAsNumber) {
-      return 1;
-    }
-    if (a.workWeekFromAsNumber < b.workWeekFromAsNumber) {
-      return -1;
-    }
-    return 0;
-  });
-
-  const workDurationInWeekToString = (group: WorkWeekGroup): string => {
-    if (group.workWeekFrom === null && group.workWeekTo === null) {
+  const workDurationInWeekToString = (group: ReturnType<typeof groupByWorkWeek>[0]): string => {
+    if (group.header == null) {
       return '';
     }
-
-    return `${convertToString(group.workWeekFrom)}～${convertToString(group.workWeekTo)}`;
+    return `${group.header.startOfWorkWeek.getMonth() + 1}月${group.header.workWeekOfMonth}週（${convertToString(group.header.startOfWorkWeek)}～${convertToString(group.header.endOfWorkWeek)}）`;
   };
 
-  const workHourInWeekToString = (group: WorkWeekGroup): string => {
-    const sumOfWorkHours = group.rows.reduce((sum: number, value) => {
-      if (value.workHour === null) {
+  const projectToString = (group: ReturnType<typeof groupByProject>[0]): string => {
+    if (group.header == null) {
+      return '';
+    }
+    return `${group.header.projectNumber}／${group.header.projectName}`;
+  };
+
+  const workHourInWeekToString = (records: WorkRecord[]): string => {
+    const sumOfWorkHours = records.reduce((sum: number, record) => {
+      if (record.workHour === null) {
         return sum;
       }
 
-      return sum + Number(value.workHour);
+      return sum + Number(record.workHour);
     }, 0);
 
     return convertToString(sumOfWorkHours / 60.0) ?? '';
@@ -70,15 +41,44 @@ const Aggregate: React.FC<Props> = ({ dataRows, convertToString }: Props) => {
 
   return (
     <div className="Aggregate">
-      {
-        groupByWorkWeek(dataRows).map((group) => (
-          <div key={group.workWeekFromAsNumber ?? 0}>
-            { workDurationInWeekToString(group) }
-            ：
-            { workHourInWeekToString(group) }
-          </div>
-        ))
-      }
+      <div>
+        週単位の集計
+      </div>
+      <table>
+        <tbody>
+          {
+            groupByWorkWeek().map((group) => (
+              <tr key={group.key}>
+                <td>
+                  { workDurationInWeekToString(group) }
+                </td>
+                <td>
+                  { workHourInWeekToString(group.records) }
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+      <div>
+        プロジェクト単位の集計
+      </div>
+      <table>
+        <tbody>
+          {
+            groupByProject().map((group) => (
+              <tr key={group.key}>
+                <td>
+                  { projectToString(group) }
+                </td>
+                <td>
+                  { workHourInWeekToString(group.records) }
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
     </div>
   );
 };
