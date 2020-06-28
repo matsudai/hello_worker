@@ -6,6 +6,7 @@ import FileImportButton from './FileImportButton';
 import FilePreview from './FilePreview';
 import FileHeaderMapper from './FileHeaderMapper';
 import Aggregate from './Aggregate';
+import WorkRecordEdit from './WorkRecordEditor';
 
 class DB {
   private static openOrCreateDB(onSuccess: (db: IDBDatabase) => void): void {
@@ -98,7 +99,13 @@ class DB {
 
 interface Props {}
 
+type ApplicationTab =
+  'FileImport' |
+  'WorkRecordEdit' |
+  'Config';
+
 const App: React.FC<Props> = () => {
+  const [applicationTab, setApplicationTab] = React.useState<ApplicationTab>('FileImport');
   const [fileHeader, setFileHeader] = React.useState<string[]>([]);
   const [fileHeaderMappers, setFileHeaderMappers] = React.useState<ReturnType<typeof DB.fetchDefaultFileHeaderMappers>>(DB.fetchDefaultFileHeaderMappers());
   const [fileRows, setFileRows] = React.useState<{ [key: string]: string }[]>([]);
@@ -210,17 +217,43 @@ const App: React.FC<Props> = () => {
     });
   };
 
+  const renderWorkRecordEditor = () => (
+    <div className="App-work_record_edit">
+      <WorkRecordEdit />
+    </div>
+  );
+
+  const renderFileImport = () => (
+    <div className="App-file_import">
+      <FileImportButton setTable={updateFilePreview} />
+      <FileHeaderMapper header={fileHeader} mappers={fileHeaderMappers} setMapperValue={updateFileHeaderMapperValue} />
+      <Aggregate dataRows={dataRows} convertToString={convertTypeValueToString} />
+      <FilePreview cols={fileHeaderMappers} rows={dataRows} convertToString={convertTypeValueToString} />
+    </div>
+  );
+
   return (
     <div className="App">
       <header className="App-header">
         <h1>Hello Worker!</h1>
       </header>
 
-      <main>
-        <FileImportButton setTable={updateFilePreview} />
-        <FileHeaderMapper header={fileHeader} mappers={fileHeaderMappers} setMapperValue={updateFileHeaderMapperValue} />
-        <Aggregate dataRows={dataRows} convertToString={convertTypeValueToString} />
-        <FilePreview cols={fileHeaderMappers} rows={dataRows} convertToString={convertTypeValueToString} />
+      <main className="App-body">
+        <label>
+          <input type="radio" checked={applicationTab === 'FileImport'} onChange={() => setApplicationTab('FileImport')} />
+          ファイル取込
+        </label>
+        <label>
+          <input type="radio" checked={applicationTab === 'WorkRecordEdit'} onChange={() => setApplicationTab('WorkRecordEdit')} />
+          データ入力
+        </label>
+        <label>
+          <input type="radio" checked={applicationTab === 'Config'} onChange={() => setApplicationTab('Config')} />
+          マスタ設定
+        </label>
+
+        { applicationTab === 'FileImport' ? renderFileImport() : null }
+        { applicationTab === 'WorkRecordEdit' ? renderWorkRecordEditor() : null }
       </main>
     </div>
   );

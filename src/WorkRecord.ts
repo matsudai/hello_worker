@@ -41,13 +41,37 @@ export default class WorkRecord {
   employeeNumber?: string;
   employeeName?: string;
   workOn?: Date;
-  projectNumber?: string;
+  projectNumbers?: (string | undefined)[];
   projectName?: string;
-  workDescription?: string;
+  workDescriptions?: (string | undefined)[];
   workHour?: Number;
 
   constructor(params: Partial<WorkRecord> = {}) {
     Object.assign(this, params);
+  }
+
+  get projectNumber(): string | undefined {
+    if (this.projectNumbers == null) {
+      return this.projectNumbers;
+    }
+
+    return this.projectNumbers.filter((value) => value != null).join('-');
+  }
+
+  set projectNumber(value: string | undefined) {
+    this.projectNumbers = [value];
+  }
+
+  get workDescription(): string | undefined {
+    if (this.workDescriptions == null) {
+      return this.workDescriptions;
+    }
+
+    return this.workDescriptions.filter((value) => value != null).join('-');
+  }
+
+  set workDescription(value) {
+    this.workDescriptions = [value];
   }
 
   canBeTalliedByWorkOn(): boolean {

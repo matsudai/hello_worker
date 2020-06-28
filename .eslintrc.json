@@ -37,6 +37,12 @@
     "max-len": 0,
     "lines-between-class-members": ["error", "always", { "exceptAfterSingleLine": true }],
     "react/no-array-index-key": "warn",
-    "comma-dangle":"off"
+    "comma-dangle":"off",
+    "jsx-a11y/label-has-associated-control": "off",
+    "react/destructuring-assignment": "off",
+    "no-unused-vars": "off", // デフォルトのESLintで.tsファイルのimportがエラーになることがあるため
+    "@typescript-eslint/no-unused-vars": "error",
+    "no-use-before-define": 0,
+    "no-multi-spaces": 0
   }
 }
